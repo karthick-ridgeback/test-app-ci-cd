@@ -60,14 +60,14 @@
 								</objectStoreV2>
 							</services>
 						</integrations>
-						<!-- <properties>
+						<properties>
 							<anypoint.platform.client_id>${mule.anypoint.platform.client_id}</anypoint.platform.client_id>
 							<mule.env>${mule.env}</mule.env>
 						</properties>
 						<secureProperties>
 							<anypoint.platform.client_secret>${mule.anypoint.platform.client_secret}</anypoint.platform.client_secret>
-							<mule.key>${mule.encryptionKey}</mule.key>
-						</secureProperties> -->
+				
+						</secureProperties> 
 					</cloudhub2Deployment>
 					<classifier>mule-application</classifier>
 				</configuration>
