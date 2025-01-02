@@ -4,7 +4,7 @@
 
 	<groupId>016c378a-a422-4dd1-abb6-fadfd0883be9</groupId>
 	<artifactId>ci-cd</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.0.1-SNAPSHOT</version>
 	<packaging>mule-application</packaging>
 
 	<name>ci-cd</name>
