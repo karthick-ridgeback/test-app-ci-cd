@@ -1,0 +1,61 @@
+# This workflow will build a MuleSoft project and deploy to CloudHub
+ 
+name: Build and Deploy to Development
+ 
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env: 
+      CONNECTED_APP_CLIENT_ID: ${{ secrets.CONNECTED_APP_CLIENT_ID }}
+      CONNECTED_APP_CLIENT_SECRET: ${{ secrets.CONNECTED_APP_CLIENT_SECRET }}
+     
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Cache Depenedencies
+      uses: actions/setup-java@v2
+      with:
+        java-version: '11'
+        distribution: 'adopt'
+        cache: maven
+    - name: Build with maven
+      run: mvn -B clean package -DskipMunitTests -Dmule.connectedAppClientId=${{ env.CONNECTED_APP_CLIENT_ID }} -Dmule.connectedAppClientSecret=${{ env.CONNECTED_APP_CLIENT_SECRET }} -Dmule.NEXUS_USERNAME=${{env.NEXUS_USERNAME}} -Dmule.NEXUS_PASSWORD=${{env.NEXUS_PASSWORD}} -s .maven/settings.xml
+    - name: Stamp artifact file name with commit hash
+      run: |
+        artifactName1=$(ls target/*.jar | head -1)
+        commitHash=$(git rev-parse --short "$GITHUB_SHA")
+        artifactName2=$(ls target/*.jar | head -1 | sed "s/.jar/-$commitHash.jar/g")
+        mv $artifactName1 $artifactName2
+    - name: Upload artifact 
+      uses: actions/upload-artifact@master
+      with:
+          name: artifacts
+          path: target/*.jar
+      if: always()  
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    env: 
+      CONNECTED_APP_CLIENT_ID: ${{ secrets.CONNECTED_APP_CLIENT_ID }}
+      CONNECTED_APP_CLIENT_SECRET: ${{ secrets.CONNECTED_APP_CLIENT_SECRET }}
+ 
+    steps:    
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - uses: actions/cache@v1
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+    - uses: actions/download-artifact@master
+      with:
+        name: artifacts
+    - name: Publish to Exchange
+      run: mvn deploy -s .maven/settings.xml -DskipTests -Dmule.connectedAppClientId=${{ env.CONNECTED_APP_CLIENT_ID }} -Dmule.connectedAppClientSecret=${{ env.CONNECTED_APP_CLIENT_SECRET }}   -Dmule.env=dev -DapplicationName=cde-ci-cd-test -Dmule.grantType=client_credentials -Dmule.target=cde-private-space -Dmule.environment=dev -Dmule.replicas=1 -Dmule.vCores=0.1 -Danypoint.uri=https://anypoint.mulesoft.com -Dcloudhub.provider=MC --file pom.xml 
+    - name: Deploy to Development
+      run: mvn deploy -s .maven/settings.xml -DskipTests -DmuleDeploy -Dmule.connectedAppClientId=${{ env.CONNECTED_APP_CLIENT_ID }} -Dmule.connectedAppClientSecret=${{ env.CONNECTED_APP_CLIENT_SECRET }}  -Dmule.env=dev -DapplicationName=cde-ci-cd-test -Dmule.grantType=client_credentials -Dmule.target=cde-private-space -Dmule.environment=dev -Dmule.replicas=1 -Dmule.vCores=0.1 -Danypoint.uri=https://anypoint.mulesoft.com -Dcloudhub.provider=MC --file pom.xml
